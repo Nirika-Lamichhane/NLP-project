@@ -1,0 +1,31 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (NLP)
+data/
+datasets/
+*.csv
+*.tsv
+*.json
+
+# Models & checkpoints
+models/
+*.h5
+*.pt
+*.pth
+*.ckpt
+
+# Logs
+logs/
+*.log
+
+# Editor
+.vscode/
