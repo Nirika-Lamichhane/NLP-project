@@ -11,7 +11,7 @@ venv/
 
 # Data (NLP)
 data/
-datasets/
+dataset/
 *.csv
 *.tsv
 *.json
@@ -29,3 +29,6 @@ logs/
 
 # Editor
 .vscode/
+
+# Large embeddings
+embeddings/*.vec
