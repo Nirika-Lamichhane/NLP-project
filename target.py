@@ -13,6 +13,8 @@ df = pd.read_csv(dataset_path, header=None,
 
 comments = df["comment"].astype(str).tolist()
 
+
+
 print("Total comments:", len(comments))
 ner_model_name = "Davlan/xlm-roberta-base-ner-hrl"
 
