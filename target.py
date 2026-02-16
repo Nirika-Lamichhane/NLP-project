@@ -1,23 +1,52 @@
 import pandas as pd
 import numpy as np
-
+import unicodedata
 from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 from sentence_transformers import SentenceTransformer
-
 from sklearn.cluster import AgglomerativeClustering
 from collections import defaultdict
-dataset_path = 'dataset/training_dataset.csv'
 
+
+
+def normalize_text(text):
+    text = unicodedata.normalize("NFKC", text)
+    text = text.lower().strip()
+    text = " ".join(text.split())
+    return text
+
+def devanagari_lexical_normalization(text):
+    # Nukta normalization
+    nukta_map = {
+        'क़': 'क', 'ख़': 'ख', 'ग़': 'ग', 'ज़': 'ज', 'ड़': 'ड', 'ढ़': 'ढ', 'फ़': 'फ', 'ऱ': 'र'
+    }
+    for k, v in nukta_map.items():
+        text = text.replace(k, v)
+
+    # Remove repeated characters (2 or more consecutive same letters)
+    import re
+    text = re.sub(r'(.)\1+', r'\1', text)
+
+    # Remove extra spaces
+    text = " ".join(text.split())
+
+    # Optional: remove common modifiers/noise words
+    modifiers = ['जी', 'दाइ', 'चोर', 'भाइ']
+    for mod in modifiers:
+        text = re.sub(r'\b' + mod + r'\b', '', text)
+
+    return text.strip()
+
+
+dataset_path = 'dataset/training_dataset.csv'
 df = pd.read_csv(dataset_path, header=None,
                  names=["comment","target","aspect","sentiment"])
-
-comments = df["comment"].astype(str).tolist()
-
-
-
+comments = df["comment"].astype(str).apply(normalize_text).tolist()
 print("Total comments:", len(comments))
-ner_model_name = "Davlan/xlm-roberta-base-ner-hrl"
 
+
+
+
+ner_model_name = "Davlan/xlm-roberta-base-ner-hrl"
 tokenizer = AutoTokenizer.from_pretrained(ner_model_name)
 model = AutoModelForTokenClassification.from_pretrained(ner_model_name)
 
