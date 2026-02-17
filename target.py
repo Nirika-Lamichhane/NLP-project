@@ -89,119 +89,48 @@ ner_pipeline = pipeline(
 # 4. ENTITY EXTRACTION + MULTI-WORD MERGING
 # =========================
 
+
+from collections import defaultdict
+
 CONFIDENCE_THRESHOLD = 0.65
-comment_entities = []
 entity_frequency = defaultdict(int)
 
 for comment in comments:
     detected = ner_pipeline(comment)
-    merged_entities = []
 
-    # Merge consecutive entities with same label
     i = 0
     while i < len(detected):
         ent = detected[i]
-        if ent["score"] < CONFIDENCE_THRESHOLD:
+
+        # keep only confident PERSON entities
+        if ent["entity_group"] not in ["PER","ORG"] or ent["score"] < CONFIDENCE_THRESHOLD:
             i += 1
             continue
 
-        word = full_normalize(ent["word"])
-        label = ent["entity_group"]
+        # normalize detected token
+        merged_name = full_normalize(ent["word"])
 
-        # Merge with next tokens of same label
+        # merge consecutive PER tokens (multi-word names)
         j = i + 1
-        merged_word = word
-        while j < len(detected) and detected[j]["entity_group"] == label:
-            merged_word += " " + full_normalize(detected[j]["word"])
+        while j < len(detected) and detected[j]["entity_group"] == "PER":
+            merged_name += " " + full_normalize(detected[j]["word"])
             j += 1
 
-        merged_entities.append({
-            "word": merged_word,
-            "label": label,
-            "score": float(ent["score"])
-        })
-        entity_frequency[merged_word] += 1
+        merged_name = merged_name.strip()
+
+        # count frequency
+        if len(merged_name) > 1:
+            entity_frequency[merged_name] += 1
+
         i = j
 
-    comment_entities.append(merged_entities)
 
-print("NER extraction + multiword merge complete")
-print("Unique raw entities:", len(entity_frequency))
+sorted_entities = sorted(
+    entity_frequency.items(),
+    key=lambda x: x[1],
+    reverse=True
+)
 
-
-unique_entities = list(entity_frequency.keys())
-
-
-# =========================
-# 5. SEMANTIC NORMALIZATION (EMBEDDINGS)
-# =========================
-
-embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
-entity_embeddings = embedding_model.encode(unique_entities)
-
-# DBSCAN clustering
-dbscan = DBSCAN(eps=0.35, min_samples=1, metric='cosine')
-cluster_ids = dbscan.fit_predict(entity_embeddings)
-
-cluster_map = defaultdict(list)
-for entity, cluster_id in zip(unique_entities, cluster_ids):
-    cluster_map[cluster_id].append(entity)
-
-print("Total semantic clusters:", len(cluster_map))
-
-
-# =========================
-# 6. CANONICAL TARGET SELECTION
-# =========================
-
-canonical_map = {}
-
-for cluster_id, variants in cluster_map.items():
-    # compute cluster centroid
-    centroid = np.mean([entity_embeddings[unique_entities.index(v)] for v in variants], axis=0)
-
-    # score each variant: combine frequency + distance to centroid
-    scores = []
-    for v in variants:
-        freq_score = entity_frequency[v]
-        dist_score = 1 - cosine_distances([entity_embeddings[unique_entities.index(v)]], [centroid])[0][0]
-        total_score = freq_score + dist_score  # weight can be tuned
-        scores.append((v, total_score))
-
-    canonical = max(scores, key=lambda x: x[1])[0]
-
-    for v in variants:
-        canonical_map[v] = canonical
-
-
-# =========================
-# 7. APPLY CANONICAL MAPPING
-# =========================
-
-normalized_comment_entities = []
-
-for ents in comment_entities:
-    normalized = []
-    for e in ents:
-        canonical = canonical_map.get(e["word"], e["word"])
-        normalized.append({
-            "canonical": canonical,
-            "label": e["label"],
-            "score": e["score"]
-        })
-    normalized_comment_entities.append(normalized)
-
-
-# =========================
-# 8. FINAL DROPDOWN TARGETS
-# =========================
-
-dropdown_targets = sorted({
-    e["canonical"]
-    for comment in normalized_comment_entities
-    for e in comment
-})
-
-print("\nFINAL DROPDOWN TARGETS:")
-print(dropdown_targets)
-print("Total dropdown targets:", len(dropdown_targets))
+print("\nTop detected person names:\n")
+for name, freq in sorted_entities[:50]:
+    print(name, "->", freq)
