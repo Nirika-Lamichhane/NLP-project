@@ -59,7 +59,7 @@ def full_normalize(text):
 
 # =========================
 # 2. LOAD DATA
-# =========================
+
 
 dataset_path = 'dataset/training_dataset.csv'
 df = pd.read_csv(dataset_path, header=None, names=["comment","target","aspect","sentiment"])
@@ -112,9 +112,12 @@ for comment in comments:
 
         # merge consecutive PER tokens (multi-word names)
         j = i + 1
-        while j < len(detected) and detected[j]["entity_group"] == "PER":
+        count = 1
+    
+        while j < len(detected) and detected[j]["entity_group"] == "PER" and count < 2:
             merged_name += " " + full_normalize(detected[j]["word"])
             j += 1
+            count += 1
 
         merged_name = merged_name.strip()
 
