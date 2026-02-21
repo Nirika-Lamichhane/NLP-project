@@ -71,7 +71,7 @@ print("Total comments:", len(comments))
 
 # =========================
 # 3. LOAD NER MODEL
-# =========================
+
 
 ner_model_name = "Davlan/xlm-roberta-base-ner-hrl"
 tokenizer = AutoTokenizer.from_pretrained(ner_model_name)
