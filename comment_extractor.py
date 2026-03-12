@@ -1,80 +1,72 @@
 # comment_extractor.py
 
 import os
-import re
 from googleapiclient.discovery import build
 from urllib.parse import urlparse, parse_qs
+from dotenv import load_dotenv
 
-# -------------------------
-# List of YouTube API keys
-# -------------------------
-API_KEYS = [
-    "AIzaSyDnbLrIPxhZC2p6g--KoaRaVRh2brj8RqI",
-    "YOUR_API_KEY_2",
-    "YOUR_API_KEY_3",
-    "YOUR_API_KEY_4"
-]
+load_dotenv()
 
-# -------------------------
-# Helper: extract video ID from URL
-# -------------------------
+# Load API keys from .env
+API_KEYS = os.getenv("YOUTUBE_API_KEYS").split(",")
+
+
 def extract_video_id(url):
-    """
-    Extracts the video ID from a YouTube URL.
-    """
     parsed_url = urlparse(url)
+
     if parsed_url.hostname in ["www.youtube.com", "youtube.com"]:
-        query = parse_qs(parsed_url.query)
-        return query.get("v", [None])[0]
-    elif parsed_url.hostname in ["youtu.be"]:
+        return parse_qs(parsed_url.query).get("v", [None])[0]
+
+    elif parsed_url.hostname == "youtu.be":
         return parsed_url.path[1:]
+
     return None
 
-# -------------------------
-# Fetch comments using API keys
-# -------------------------
-def get_comments(youtube_url, max_comments=500):
-    """
-    Takes a YouTube URL and returns a list of comments.
-    Rotates through multiple API keys if quota exceeded.
-    """
+
+def get_comments(youtube_url):
+
     video_id = extract_video_id(youtube_url)
+
     if not video_id:
         raise ValueError("Invalid YouTube URL")
 
     comments = []
     next_page_token = None
+    key_index = 0
 
-    # Try each API key until quota is enough
-    for api_key in API_KEYS:
-        youtube = build("youtube", "v3", developerKey=api_key)
+    youtube = build("youtube", "v3", developerKey=API_KEYS[key_index])
+
+    while True:
+
         try:
-            while len(comments) < max_comments:
-                request = youtube.commentThreads().list(
-                    part="snippet",
-                    videoId=video_id,
-                    maxResults=100,
-                    pageToken=next_page_token,
-                    textFormat="plainText"
-                )
-                response = request.execute()
+            request = youtube.commentThreads().list(
+                part="snippet",
+                videoId=video_id,
+                maxResults=100,
+                pageToken=next_page_token,
+                textFormat="plainText"
+            )
 
-                for item in response.get("items", []):
-                    comment_snippet = item["snippet"]["topLevelComment"]["snippet"]
-                    comments.append(comment_snippet["textDisplay"])
-                    if len(comments) >= max_comments:
-                        break
+            response = request.execute()
 
-                next_page_token = response.get("nextPageToken")
-                if not next_page_token:
-                    break
+            for item in response["items"]:
+                comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
+                comments.append(comment)
 
-            # If we got enough comments, stop
-            if comments:
+            next_page_token = response.get("nextPageToken")
+
+            if not next_page_token:
                 break
 
         except Exception as e:
-            print(f"API key {api_key} failed or quota exceeded: {e}")
-            continue  # Try next key
+
+            key_index += 1
+
+            if key_index >= len(API_KEYS):
+                print("All API keys exhausted.")
+                break
+
+            print("Switching API key...")
+            youtube = build("youtube", "v3", developerKey=API_KEYS[key_index])
 
     return comments
