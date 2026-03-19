@@ -1,25 +1,22 @@
-from ml.transliteration_model import transliterate
-from ml.devanagari import predict_sentiment
-from comment_extractor import extract_comments
+from registry import registry
+from comment_extractor import get_comments
 
-def nlp_pipeline(url):
+def run_pipeline(url: str):
+    comments = get_comments(url)
     results = []
-    
-    # 1. Extract comments
-    comments = extract_comments(url)
-    
+
     for comment in comments:
-        # 2. Transliterate
-        devanagari_comment = transliterate(comment)
-        
-        # 3. Predict aspect and sentiment
-        aspect, sentiment = predict_sentiment(devanagari_comment)
-        
+        # transliterate
+        devanagari_comment = registry.transliterator.predict(comment)
+
+        # predict aspect and sentiment
+        sentiment, aspect = registry.devanagari.predict(devanagari_comment)
+
         results.append({
-            "original_comment": comment,
+            "original_comment":   comment,
             "devanagari_comment": devanagari_comment,
-            "aspect": aspect,
-            "sentiment": sentiment
+            "aspect":             aspect,
+            "sentiment":          sentiment,
         })
-    
+
     return results

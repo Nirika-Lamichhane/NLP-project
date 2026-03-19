@@ -1,75 +1,54 @@
-# ml/transliteration.py
-
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from IndicTransToolkit.processor import IndicProcessor
-
-# -------------------------
-# Paths and device
-# -------------------------
+from ml.base import BaseMLModel
 
 MODEL_PATH = "models/transliteration_model"
-DEVICE = "cpu"
+DEVICE     = "cpu"
 
-# -------------------------
-# Load tokenizer and model
-# -------------------------
+class TransliterationModel(BaseMLModel):
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
+    def load(self):
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_PATH, trust_remote_code=True
+        )
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(
+            MODEL_PATH, trust_remote_code=True
+        ).to(DEVICE)
+        self.model.eval()
+        self.ip = IndicProcessor(inference=True)
 
-model = AutoModelForSeq2SeqLM.from_pretrained(
-    MODEL_PATH,
-    trust_remote_code=True
-).to(DEVICE)
-model.eval()
+    def predict(self, text: str):
+        if isinstance(text, str):
+            text = [text]
 
-# -------------------------
-# Load Indic processor
-# -------------------------
+        src_lang = "eng_Latn"
+        tgt_lang = "npi_Deva"
 
-ip = IndicProcessor(inference=True)
-
-# -------------------------
-# Transliteration function
-# -------------------------
-
-def transliterate(text):
-    """
-    Converts English / Roman text to Devanagari Nepali.
-    """
-
-    if isinstance(text, str):
-        text = [text]
-
-    # define source and target languages
-    src_lang = "eng_Latn"
-    tgt_lang = "npi_Deva"
-
-    # preprocess
-    batch = ip.preprocess_batch(text, src_lang=src_lang, tgt_lang=tgt_lang)
-
-    inputs = tokenizer(
-        batch,
-        truncation=True,
-        padding=True,
-        return_tensors="pt",
-        return_attention_mask=True,
-    ).to(DEVICE)
-
-    with torch.no_grad():
-        generated_tokens = model.generate(
-            **inputs,
-            max_length=256,
-            num_beams=5,
+        batch = self.ip.preprocess_batch(
+            text, src_lang=src_lang, tgt_lang=tgt_lang
         )
 
-    # decode and postprocess
-    outputs = tokenizer.batch_decode(
-        generated_tokens,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True,
-    )
+        inputs = self.tokenizer(
+            batch,
+            truncation=True,
+            padding=True,
+            return_tensors="pt",
+            return_attention_mask=True,
+        ).to(DEVICE)
 
-    outputs = ip.postprocess_batch(outputs, lang=tgt_lang)
+        with torch.no_grad():
+            generated_tokens = self.model.generate(
+                **inputs,
+                max_length=256,
+                num_beams=1,
+            )
 
-    return outputs[0]
+        outputs = self.tokenizer.batch_decode(
+            generated_tokens,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        )
+
+        outputs = self.ip.postprocess_batch(outputs, lang=tgt_lang)
+        return outputs[0]
