@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Load API keys from .env
 API_KEYS = os.getenv("YOUTUBE_API_KEYS").split(",")
 
 
@@ -23,7 +22,7 @@ def extract_video_id(url):
     return None
 
 
-def get_comments(youtube_url):
+def get_comments(youtube_url, max_comments=10):
 
     video_id = extract_video_id(youtube_url)
 
@@ -52,6 +51,8 @@ def get_comments(youtube_url):
             for item in response["items"]:
                 comment = item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
                 comments.append(comment)
+                if len(comments) >= max_comments:
+                    return comments
 
             next_page_token = response.get("nextPageToken")
 
@@ -59,7 +60,6 @@ def get_comments(youtube_url):
                 break
 
         except Exception as e:
-
             key_index += 1
 
             if key_index >= len(API_KEYS):
