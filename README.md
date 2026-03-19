@@ -28,3 +28,25 @@ Optional: apply Nepali-specific Unicode normalization (unicodedata.normalize('NF
  6. combine frequency + embedding centrality.
  7. build dropdown.
  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ march 19
+ the pipeline and the proper web page is being developed:
+ here the mdoel weights should be loaded first and then used it later by every request.
+ 
