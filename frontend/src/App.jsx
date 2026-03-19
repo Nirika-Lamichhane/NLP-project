@@ -1,121 +1,83 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react"
+import ResultCard from "./components/ResultCard"
+import Charts from "./components/Charts"
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [url, setUrl] = useState("")
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handleAnalyze() {
+    if (!url.trim()) return
+    setLoading(true)
+    setError(null)
+    setResults([])
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || "Something went wrong")
+      }
+
+      const data = await res.json()
+      setResults(data.results)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="container">
+      <div className="header">
+        <div className="header-accent" />
+        <h1>Aspect-Based Sentiment Analysis</h1>
+        <p className="subtitle">Analyze Nepali YouTube comments in real time</p>
+      </div>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <div className="input-section">
+        <div className="input-row">
+          <input
+            type="text"
+            placeholder="Paste a YouTube URL..."
+            value={url}
+            onChange={e => setUrl(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleAnalyze()}
+            disabled={loading}
+          />
+          <button onClick={handleAnalyze} disabled={loading}>
+            {loading ? "Analyzing..." : "Analyze"}
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {error && <p className="error">{error}</p>}
+
+      {loading && (
+        <div className="loading">
+          <div className="spinner" />
+          <p>Fetching and analyzing comments — this takes about 60–90 seconds</p>
+        </div>
+      )}
+
+      {results.length > 0 && (
+        <div className="results">
+          <p className="result-count">{results.length} comments analyzed</p>
+          {results.map((r, i) => <ResultCard key={i} index={i} result={r} />)}
+        </div>
+      )}
+
+      {/* Charts always visible — sample data before analysis, real data after */}
+      <Charts results={results} />
+
+    </div>
   )
 }
-
-export default App
