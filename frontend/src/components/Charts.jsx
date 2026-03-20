@@ -159,9 +159,9 @@ function TargetChart({ targetData, index, isSample }) {
           <YAxis tick={{ fontSize: 11, fill: "#888" }} allowDecimals={false} />
           <Tooltip content={<CustomTooltip />} />
           <Legend formatter={v => <span style={{ fontSize: 12, color: "#555" }}>{v}</span>} />
-          <Bar dataKey="positive" name="Positive" fill="#22C55E" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} stackId="a" />
-          <Bar dataKey="negative" name="Negative" fill="#EF4444" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} stackId="a" />
-          <Bar dataKey="neutral"  name="Neutral"  fill="#9CA3AF" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} stackId="a" />
+          <Bar dataKey="positive" name="Positive" fill="#22C55E" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
+          <Bar dataKey="negative" name="Negative" fill="#EF4444" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
+          <Bar dataKey="neutral"  name="Neutral"  fill="#9CA3AF" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -171,7 +171,6 @@ function TargetChart({ targetData, index, isSample }) {
 export default function Charts({ stats }) {
   const isSample = !stats
 
-  // overall sentiment
   const sentimentData = isSample
     ? SAMPLE_SENTIMENT
     : Object.entries(stats.sentiment_counts).map(([name, value]) => ({
@@ -179,7 +178,6 @@ export default function Charts({ stats }) {
         value,
       }))
 
-  // overall aspect
   const aspectData = isSample
     ? SAMPLE_ASPECT
     : Object.entries(stats.aspect_counts)
@@ -189,7 +187,6 @@ export default function Charts({ stats }) {
         }))
         .sort((a, b) => b.value - a.value)
 
-  // per target
   const targetData = isSample
     ? SAMPLE_TARGETS
     : stats.per_target.map(t => ({
