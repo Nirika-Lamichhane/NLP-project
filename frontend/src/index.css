@@ -313,3 +313,23 @@ h1 {
   border-radius: 20px;
   font-weight: 500;
 }
+
+.targets-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.target-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.target-badge {
+  background: #FFF7ED;
+  color: #C2410C;
+  border: 1px solid #FED7AA;
+  font-weight: 600;
+}

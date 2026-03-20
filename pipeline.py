@@ -46,7 +46,7 @@ def compute_stats(stat_rows: list) -> dict:
 
 
 def run_pipeline(url: str):
-    comments = get_comments(url)
+    comments = get_comments(url, target_processed=10)
     result_cards = []
     stat_rows    = []
     skipped      = 0
@@ -60,25 +60,26 @@ def run_pipeline(url: str):
 
         # Step 2 — route by language
         if language == "NE_DEV":
+            # already Devanagari — use directly
             devanagari_comment = comment
 
-        elif language == "EN":
+        elif language in ("NE_ROM", "EN"):
+            # Roman Nepali or English — transliterate
             devanagari_comment = registry.transliterator.predict(comment)
 
         else:
+            # CODE_MIXED or anything else — skip
             skipped += 1
             result_cards.append({
                 "original_comment": comment,
-                "language":         language,
+                "language":         language,  # shows actual label e.g. CODE_MIXED
                 "targets":          [],
                 "skipped":          True,
             })
             continue
 
-        # Step 3 — target identification (real model)
+        # Step 3 — target identification
         targets = registry.target_model.predict(devanagari_comment)
-
-        # if no targets found, use "General" as fallback
         if not targets:
             targets = ["General"]
 

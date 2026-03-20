@@ -9,7 +9,7 @@ GENERIC_TARGETS_PATH = "models/target_model/generic_targets.txt"
 LABEL_MAPPINGS_PATH  = "models/target_model/label_mappings.json"
 
 STOPWORDS = {
-    "को", "का", "की",
+    "को", "का",
     "ले", "लाई",
     "बाट", "देखि",
     "द्वारा",
