@@ -1,6 +1,7 @@
 import logging
-from ml.devanagari import DevanagariModel
+from ml.language_identifier import LanguageIdentifier
 from ml.transliteration_model import TransliterationModel
+from ml.devanagari import DevanagariModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,6 +18,10 @@ class ModelRegistry:
     def initialize(self):
         if self._ready:
             return
+
+        logger.info("Loading language identifier...")
+        self.language_identifier = LanguageIdentifier()
+        self.language_identifier.load()
 
         logger.info("Loading transliteration model...")
         self.transliterator = TransliterationModel()

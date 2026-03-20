@@ -5,6 +5,24 @@ export default function ResultCard({ result, index }) {
     neutral:  { bg: "#F5F5F4", color: "#57534E", label: "Neutral"  },
   }
 
+  if (result.skipped) {
+    return (
+      <div className="card">
+        <div className="card-index">#{index + 1}</div>
+        <div className="card-body">
+          <p className="comment-text" style={{ color: "#aaa" }}>
+            {result.original_comment}
+          </p>
+          <div className="card-footer">
+            <div className="badge" style={{ background: "#F5F5F4", color: "#999" }}>
+              {result.language} — skipped
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const s = sentimentConfig[result.sentiment] || sentimentConfig.neutral
 
   return (
@@ -13,7 +31,7 @@ export default function ResultCard({ result, index }) {
       <div className="card-body">
         <div className="comment-row">
           <div className="comment-block">
-            <span className="label">Original</span>
+            <span className="label">Original ({result.language})</span>
             <p className="comment-text">{result.original_comment}</p>
           </div>
           <div className="arrow">→</div>
