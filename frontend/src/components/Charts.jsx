@@ -6,8 +6,8 @@ import {
 
 const SENTIMENT_COLORS = {
   Positive: "#F97316",
-  Negative: "#1D4ED8",
-  Neutral:  "#A8A29E",
+  Negative: "#B91C1C",
+  Neutral:  "#6B7280",
 }
 
 const SAMPLE_SENTIMENT = [
@@ -93,7 +93,6 @@ function OverallCharts({ sentimentData, aspectData, isSample }) {
                   <Cell
                     key={i}
                     fill={SENTIMENT_COLORS[entry.name] || "#ccc"}
-                    opacity={isSample ? 0.4 : 1}
                   />
                 ))}
               </Pie>
@@ -118,7 +117,6 @@ function OverallCharts({ sentimentData, aspectData, isSample }) {
               <Bar
                 dataKey="value" fill="#F97316"
                 radius={[5, 5, 0, 0]}
-                opacity={isSample ? 0.4 : 1}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -140,7 +138,6 @@ function TargetChart({ targetData, index, isSample }) {
         padding: "3px 10px", borderRadius: 20,
         background: pillBg, color: pillText,
         marginBottom: 10,
-        opacity: isSample ? 0.5 : 1,
       }}>
         {targetData.target} — {targetData.mentions} mentions
       </div>
@@ -159,9 +156,9 @@ function TargetChart({ targetData, index, isSample }) {
           <YAxis tick={{ fontSize: 11, fill: "#888" }} allowDecimals={false} />
           <Tooltip content={<CustomTooltip />} />
           <Legend formatter={v => <span style={{ fontSize: 12, color: "#555" }}>{v}</span>} />
-          <Bar dataKey="positive" name="Positive" fill="#22C55E" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
-          <Bar dataKey="negative" name="Negative" fill="#EF4444" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
-          <Bar dataKey="neutral"  name="Neutral"  fill="#9CA3AF" radius={[3, 3, 0, 0]} opacity={isSample ? 0.4 : 1} />
+          <Bar dataKey="positive" name="Positive" fill="#16A34A" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="negative" name="Negative" fill="#B91C1C" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="neutral"  name="Neutral"  fill="#6B7280" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
