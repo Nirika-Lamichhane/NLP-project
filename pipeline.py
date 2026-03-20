@@ -11,33 +11,20 @@ def run_pipeline(url: str):
         lang_result = registry.language_identifier.predict(comment)
         language = lang_result["language"]
 
-        # Step 2 — decide what to do based on language
-        if language == "NE_ROM":
-            # Roman Nepali → transliterate to Devanagari
-            devanagari_comment = registry.transliterator.predict(comment)
-
-        elif language == "NE_DEV":
-            # Already Devanagari → skip transliteration entirely
+        # Step 2 — route based on language
+        if language == "NE_DEV":
+            # already Devanagari — skip transliteration
             devanagari_comment = comment
 
         elif language == "EN":
-            # English → skip, not relevant for our model
-            # add to results with a note and continue
-            results.append({
-                "original_comment":   comment,
-                "language":           "EN",
-                "devanagari_comment": None,
-                "aspect":             None,
-                "sentiment":          None,
-                "skipped":            True,
-            })
-            continue
+            # English — translate to Devanagari using IndicTrans
+            devanagari_comment = registry.transliterator.predict(comment)
 
         else:
-            # UNKNOWN — skip as well
+            # NE_ROM or UNKNOWN — skip entirely
             results.append({
                 "original_comment":   comment,
-                "language":           "UNKNOWN",
+                "language":           language,
                 "devanagari_comment": None,
                 "aspect":             None,
                 "sentiment":          None,
@@ -46,7 +33,7 @@ def run_pipeline(url: str):
             continue
 
         # Step 3 — predict aspect and sentiment
-        # only reaches here for NE_ROM and NE_DEV
+        # only NE_DEV and EN reach here
         sentiment, aspect = registry.devanagari.predict(devanagari_comment)
 
         results.append({

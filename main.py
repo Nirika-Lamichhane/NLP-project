@@ -1,3 +1,4 @@
+import traceback
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,6 @@ from pipeline import run_pipeline
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # runs once at startup — loads all models into memory
     registry.initialize()
     yield
 
@@ -15,7 +15,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React dev server
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -29,6 +29,7 @@ def analyze(req: AnalyzeRequest):
         results = run_pipeline(req.url)
         return {"results": results}
     except Exception as e:
+        traceback.print_exc()  # prints full error to terminal
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
