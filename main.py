@@ -26,10 +26,10 @@ class AnalyzeRequest(BaseModel):
 @app.post("/api/analyze")
 def analyze(req: AnalyzeRequest):
     try:
-        results = run_pipeline(req.url)
-        return {"results": results}
+        data = run_pipeline(req.url)  # ← now returns { results, stats }
+        return data                   # ← return directly, not wrapped
     except Exception as e:
-        traceback.print_exc()  # prints full error to terminal
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")

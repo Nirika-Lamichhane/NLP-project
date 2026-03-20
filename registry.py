@@ -2,6 +2,7 @@ import logging
 from ml.language_identifier import LanguageIdentifier
 from ml.transliteration_model import TransliterationModel
 from ml.devanagari import DevanagariModel
+from ml.target_model import TargetModel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,6 +27,10 @@ class ModelRegistry:
         logger.info("Loading transliteration model...")
         self.transliterator = TransliterationModel()
         self.transliterator.load()
+
+        logger.info("Loading target model...")
+        self.target_model = TargetModel()
+        self.target_model.load()
 
         logger.info("Loading devanagari + sentiment model...")
         self.devanagari = DevanagariModel()
