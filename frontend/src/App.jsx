@@ -3,16 +3,18 @@ import ResultCard from "./components/ResultCard"
 import Charts from "./components/Charts"
 
 export default function App() {
-  const [url, setUrl] = useState("")
+  const [url, setUrl]       = useState("")
   const [results, setResults] = useState([])
+  const [stats, setStats]   = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError]   = useState(null)
 
   async function handleAnalyze() {
     if (!url.trim()) return
     setLoading(true)
     setError(null)
     setResults([])
+    setStats(null)
 
     try {
       const res = await fetch("http://127.0.0.1:8000/api/analyze", {
@@ -20,14 +22,13 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       })
-
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.detail || "Something went wrong")
       }
-
       const data = await res.json()
       setResults(data.results)
+      setStats(data.stats)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -75,9 +76,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Charts always visible — sample data before analysis, real data after */}
-      <Charts results={results} />
-
+      <Charts stats={stats} />
     </div>
   )
 }
