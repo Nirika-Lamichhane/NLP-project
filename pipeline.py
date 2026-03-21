@@ -1,6 +1,7 @@
 import pandas as pd
 from registry import registry
-from comment_extractor import get_comments
+from comment_extractor import get_comments_batch
+
 
 def compute_stats(stat_rows: list) -> dict:
     if not stat_rows:
@@ -45,38 +46,79 @@ def compute_stats(stat_rows: list) -> dict:
     }
 
 
+def fetch_processable_comments(url: str, target: int = 10, max_fetch: int = 200):
+    """
+    Fetches comments in batches from YouTube.
+    Language-detects each comment on the fly.
+    Returns only NE_DEV and EN comments with 5+ words.
+    Stops as soon as target number of processable comments are found.
+    """
+    processable   = []
+    page_token    = None
+    total_fetched = 0
+
+    while total_fetched < max_fetch:
+
+        # fetch one batch from YouTube
+        batch, page_token = get_comments_batch(url, page_token, batch_size=20)
+
+        if not batch:
+            break
+
+        for comment in batch:
+            total_fetched += 1
+
+            # pre-filter: must have 5+ words
+            if len(comment.split()) < 5:
+                continue
+
+            # language detect — fast, ~0.1s
+            lang_result = registry.language_identifier.predict(comment)
+            language    = lang_result["language"]
+
+            # only keep NE_DEV and EN
+            if language == "NE_DEV":
+                processable.append({
+                    "comment":  comment,
+                    "language": language,
+                })
+
+            elif language == "EN":
+                processable.append({
+                    "comment":  comment,
+                    "language": language,
+                })
+
+            # stop the moment we have enough
+            if len(processable) >= target:
+                return processable
+
+        # no more pages on YouTube
+        if not page_token:
+            break
+
+    return processable
+
+
 def run_pipeline(url: str):
-    comments = get_comments(url, target_processed=10)
+
+    # Step 1 — fetch only processable comments
+    processable = fetch_processable_comments(url, target=10)
+
     result_cards = []
     stat_rows    = []
-    skipped      = 0
     processed    = 0
 
-    for comment in comments:
+    for item in processable:
+        comment  = item["comment"]
+        language = item["language"]
 
-        # Step 1 — language identification
-        lang_result = registry.language_identifier.predict(comment)
-        language    = lang_result["language"]
-
-        # Step 2 — route by language
+        # Step 2 — transliterate only English
         if language == "NE_DEV":
-            # already Devanagari — use directly
             devanagari_comment = comment
-
-        elif language in ("NE_ROM", "EN"):
-            # Roman Nepali or English — transliterate
-            devanagari_comment = registry.transliterator.predict(comment)
-
         else:
-            # CODE_MIXED or anything else — skip
-            skipped += 1
-            result_cards.append({
-                "original_comment": comment,
-                "language":         language,  # shows actual label e.g. CODE_MIXED
-                "targets":          [],
-                "skipped":          True,
-            })
-            continue
+            # EN — transliterate to Devanagari
+            devanagari_comment = registry.transliterator.predict(comment)
 
         # Step 3 — target identification
         targets = registry.target_model.predict(devanagari_comment)
@@ -107,10 +149,11 @@ def run_pipeline(url: str):
             "skipped":            False,
         })
 
+    # Step 5 — compute stats
     stats = compute_stats(stat_rows)
-    stats["total_comments"] = len(comments)
+    stats["total_comments"] = processed
     stats["processed"]      = processed
-    stats["skipped"]        = skipped
+    stats["skipped"]        = 0
 
     return {
         "results": result_cards,
