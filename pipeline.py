@@ -48,18 +48,20 @@ def compute_stats(stat_rows: list) -> dict:
 
 def fetch_processable_comments(url: str, target: int = 10, max_fetch: int = 200):
     """
-    Fetches comments in batches from YouTube.
+    Fetches comments in batches.
     Language-detects each comment on the fly.
-    Returns only NE_DEV and EN comments with 5+ words.
-    Stops as soon as target number of processable comments are found.
+    Stops when target number of NE_DEV or EN comments found.
+    Returns two lists:
+      - processable: NE_DEV and EN comments with 5+ words
+      - skipped: everything else with their language label
     """
     processable   = []
+    skipped       = []
     page_token    = None
     total_fetched = 0
 
     while total_fetched < max_fetch:
 
-        # fetch one batch from YouTube
         batch, page_token = get_comments_batch(url, page_token, batch_size=20)
 
         if not batch:
@@ -68,15 +70,18 @@ def fetch_processable_comments(url: str, target: int = 10, max_fetch: int = 200)
         for comment in batch:
             total_fetched += 1
 
-            # pre-filter: must have 5+ words
+            # pre-filter: less than 5 words → skip immediately
             if len(comment.split()) < 5:
+                skipped.append({
+                    "comment":  comment,
+                    "language": "TOO_SHORT",
+                })
                 continue
 
-            # language detect — fast, ~0.1s
+            # language detect
             lang_result = registry.language_identifier.predict(comment)
             language    = lang_result["language"]
 
-            # only keep NE_DEV and EN
             if language == "NE_DEV":
                 processable.append({
                     "comment":  comment,
@@ -89,43 +94,49 @@ def fetch_processable_comments(url: str, target: int = 10, max_fetch: int = 200)
                     "language": language,
                 })
 
-            # stop the moment we have enough
-            if len(processable) >= target:
-                return processable
+            else:
+                # NE_ROM, CODE_MIXED, UNKNOWN → skipped
+                skipped.append({
+                    "comment":  comment,
+                    "language": language,
+                })
 
-        # no more pages on YouTube
+            # stop fetching when we have enough processable
+            if len(processable) >= target:
+                return processable, skipped
+
         if not page_token:
             break
 
-    return processable
+    return processable, skipped
 
 
 def run_pipeline(url: str):
 
-    # Step 1 — fetch only processable comments
-    processable = fetch_processable_comments(url, target=10)
+    # Step 1 — fetch and filter
+    processable, skipped_comments = fetch_processable_comments(url, target=10)
 
     result_cards = []
     stat_rows    = []
     processed    = 0
 
+    # Step 2 — process good comments
     for item in processable:
         comment  = item["comment"]
         language = item["language"]
 
-        # Step 2 — transliterate only English
+        # transliterate only English
         if language == "NE_DEV":
             devanagari_comment = comment
         else:
-            # EN — transliterate to Devanagari
             devanagari_comment = registry.transliterator.predict(comment)
 
-        # Step 3 — target identification
+        # target identification
         targets = registry.target_model.predict(devanagari_comment)
         if not targets:
             targets = ["General"]
 
-        # Step 4 — aspect + sentiment per target
+        # aspect + sentiment per target
         comment_targets = []
         for target in targets:
             sentiment, aspect = registry.devanagari.predict(devanagari_comment)
@@ -149,11 +160,20 @@ def run_pipeline(url: str):
             "skipped":            False,
         })
 
-    # Step 5 — compute stats
+    # Step 3 — add skipped comments at the end
+    for item in skipped_comments:
+        result_cards.append({
+            "original_comment": item["comment"],
+            "language":         item["language"],
+            "targets":          [],
+            "skipped":          True,
+        })
+
+    # Step 4 — compute stats
     stats = compute_stats(stat_rows)
-    stats["total_comments"] = processed
+    stats["total_comments"] = len(processable) + len(skipped_comments)
     stats["processed"]      = processed
-    stats["skipped"]        = 0
+    stats["skipped"]        = len(skipped_comments)
 
     return {
         "results": result_cards,
