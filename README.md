@@ -27,7 +27,7 @@ Comment Extractor (YouTube Data API)
 Language Identifier (FastText)
     ↓
     ├── NE_DEV → use directly
-    ├── EN     → IndicTrans2 transliteration → Devanagari
+    ├── EN     → IndicTrans2 translation → Devanagari
     ├── NE_ROM → skip
     └── CODE_MIXED → skip
     ↓
@@ -123,6 +123,7 @@ pip install fastapi==0.135.1 uvicorn==0.42.0 tensorflow==2.20.0 torch==2.10.0 "t
 ### 4. Download model weights
 
 Download the following from Google Drive and place them in the correct folders:
+Googlr Drive link for models is : "https://drive.google.com/drive/folders/1MQDkoms_n9-8WnSNTdgedC0JP6F2OlX1?usp=sharing"
 
 ```
 models/
