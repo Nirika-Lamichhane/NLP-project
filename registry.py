@@ -1,6 +1,6 @@
 import logging
 from ml.language_identifier import LanguageIdentifier
-from ml.transliteration_model import TransliterationModel
+from ml.translation_model import TransliterationModel
 from ml.devanagari import DevanagariModel
 from ml.target_model import TargetModel
 
